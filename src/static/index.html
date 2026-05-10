@@ -21,12 +21,40 @@
         </div>
       </section>
 
+      <section id="profile-container">
+        <h3>Create Student Profile</h3>
+        <form id="profile-form">
+          <div class="form-group">
+            <label for="profile-email">Student Email:</label>
+            <input type="email" id="profile-email" required placeholder="your-email@mergington.edu" />
+          </div>
+          <div class="form-group">
+            <label for="profile-name">Student Name:</label>
+            <input type="text" id="profile-name" required placeholder="Jane Doe" />
+          </div>
+          <div class="form-group">
+            <label for="profile-grade">Grade Level:</label>
+            <input type="text" id="profile-grade" required placeholder="10" />
+          </div>
+          <div class="form-group">
+            <label for="profile-contact">Contact Number:</label>
+            <input type="tel" id="profile-contact" placeholder="555-0123" />
+          </div>
+          <div class="form-group">
+            <label for="profile-enrolled">Enrollment Date:</label>
+            <input type="date" id="profile-enrolled" />
+          </div>
+          <button type="submit">Create Profile</button>
+        </form>
+      </section>
+
       <section id="signup-container">
         <h3>Sign Up for an Activity</h3>
         <form id="signup-form">
           <div class="form-group">
             <label for="email">Student Email:</label>
-            <input type="email" id="email" required placeholder="your-email@mergington.edu" />
+            <input list="student-emails" type="email" id="email" required placeholder="your-email@mergington.edu" />
+            <datalist id="student-emails"></datalist>
           </div>
           <div class="form-group">
             <label for="activity">Select Activity:</label>
@@ -38,6 +66,13 @@
           <button type="submit">Sign Up</button>
         </form>
         <div id="message" class="hidden"></div>
+      </section>
+
+      <section id="students-list-container">
+        <h3>Student Profiles</h3>
+        <div id="students-list">
+          <p>Loading student profiles...</p>
+        </div>
       </section>
     </main>
 

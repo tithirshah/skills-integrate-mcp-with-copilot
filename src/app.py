@@ -5,11 +5,30 @@ A super simple FastAPI application that allows students to view and sign up
 for extracurricular activities at Mergington High School.
 """
 
-from fastapi import FastAPI, HTTPException
-from fastapi.staticfiles import StaticFiles
-from fastapi.responses import RedirectResponse
 import os
 from pathlib import Path
+from typing import Dict, List, Optional
+
+from fastapi import FastAPI, HTTPException
+from fastapi.responses import RedirectResponse
+from fastapi.staticfiles import StaticFiles
+from pydantic import BaseModel, EmailStr
+
+
+class StudentProfile(BaseModel):
+    email: EmailStr
+    name: str
+    grade_level: str
+    contact_number: Optional[str] = None
+    enrolled_at: Optional[str] = None
+
+
+class StudentProfileUpdate(BaseModel):
+    name: Optional[str] = None
+    grade_level: Optional[str] = None
+    contact_number: Optional[str] = None
+    enrolled_at: Optional[str] = None
+
 
 app = FastAPI(title="Mergington High School API",
               description="API for viewing and signing up for extracurricular activities")
@@ -18,6 +37,38 @@ app = FastAPI(title="Mergington High School API",
 current_dir = Path(__file__).parent
 app.mount("/static", StaticFiles(directory=os.path.join(Path(__file__).parent,
           "static")), name="static")
+
+# In-memory student profiles
+students: Dict[str, StudentProfile] = {
+    "michael@mergington.edu": StudentProfile(
+        email="michael@mergington.edu",
+        name="Michael Johnson",
+        grade_level="10",
+        contact_number="555-0101",
+        enrolled_at="2024-09-01"
+    ),
+    "emma@mergington.edu": StudentProfile(
+        email="emma@mergington.edu",
+        name="Emma Williams",
+        grade_level="11",
+        contact_number="555-0202",
+        enrolled_at="2023-09-01"
+    ),
+    "liam@mergington.edu": StudentProfile(
+        email="liam@mergington.edu",
+        name="Liam Brown",
+        grade_level="12",
+        contact_number="555-0303",
+        enrolled_at="2022-09-01"
+    ),
+    "ava@mergington.edu": StudentProfile(
+        email="ava@mergington.edu",
+        name="Ava Miller",
+        grade_level="11",
+        contact_number="555-0404",
+        enrolled_at="2024-09-01"
+    )
+}
 
 # In-memory activity database
 activities = {
@@ -83,6 +134,37 @@ def root():
     return RedirectResponse(url="/static/index.html")
 
 
+@app.get("/students")
+def get_students():
+    return list(students.values())
+
+
+@app.get("/students/{email}")
+def get_student(email: str):
+    if email not in students:
+        raise HTTPException(status_code=404, detail="Student not found")
+    return students[email]
+
+
+@app.post("/students")
+def create_student(profile: StudentProfile):
+    if profile.email in students:
+        raise HTTPException(status_code=400, detail="Student profile already exists")
+    students[profile.email] = profile
+    return profile
+
+
+@app.put("/students/{email}")
+def update_student(email: str, profile_update: StudentProfileUpdate):
+    if email not in students:
+        raise HTTPException(status_code=404, detail="Student not found")
+
+    current_profile = students[email]
+    updated_profile = current_profile.copy(update=profile_update.dict(exclude_unset=True))
+    students[email] = updated_profile
+    return updated_profile
+
+
 @app.get("/activities")
 def get_activities():
     return activities
@@ -94,6 +176,10 @@ def signup_for_activity(activity_name: str, email: str):
     # Validate activity exists
     if activity_name not in activities:
         raise HTTPException(status_code=404, detail="Activity not found")
+
+    # Ensure the student profile exists before signup
+    if email not in students:
+        raise HTTPException(status_code=404, detail="Student profile not found")
 
     # Get the specific activity
     activity = activities[activity_name]
