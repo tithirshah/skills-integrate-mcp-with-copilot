@@ -2,7 +2,48 @@ document.addEventListener("DOMContentLoaded", () => {
   const activitiesList = document.getElementById("activities-list");
   const activitySelect = document.getElementById("activity");
   const signupForm = document.getElementById("signup-form");
+  const profileForm = document.getElementById("profile-form");
+  const studentEmails = document.getElementById("student-emails");
+  const studentsList = document.getElementById("students-list");
   const messageDiv = document.getElementById("message");
+
+  // Function to fetch student profiles from API
+  async function fetchStudents() {
+    try {
+      const response = await fetch("/students");
+      const students = await response.json();
+
+      studentsList.innerHTML = "";
+      studentEmails.innerHTML = "";
+
+      if (students.length === 0) {
+        studentsList.innerHTML = "<p>No student profiles yet.</p>";
+        return;
+      }
+
+      const list = document.createElement("ul");
+      list.className = "profile-list";
+
+      students.forEach((student) => {
+        const listItem = document.createElement("li");
+        listItem.innerHTML = `
+          <strong>${student.name}</strong> (${student.email})<br />
+          Grade: ${student.grade_level}${student.contact_number ? ` • Contact: ${student.contact_number}` : ""}${student.enrolled_at ? ` • Enrolled: ${student.enrolled_at}` : ""}
+        `;
+        list.appendChild(listItem);
+
+        const option = document.createElement("option");
+        option.value = student.email;
+        studentEmails.appendChild(option);
+      });
+
+      studentsList.appendChild(list);
+    } catch (error) {
+      studentsList.innerHTML =
+        "<p>Failed to load student profiles. Please try again later.</p>";
+      console.error("Error fetching students:", error);
+    }
+  }
 
   // Function to fetch activities from API
   async function fetchActivities() {
@@ -12,6 +53,7 @@ document.addEventListener("DOMContentLoaded", () => {
 
       // Clear loading message
       activitiesList.innerHTML = "";
+      activitySelect.innerHTML = '<option value="">-- Select an activity --</option>';
 
       // Populate activities list
       Object.entries(activities).forEach(([name, details]) => {
@@ -110,6 +152,57 @@ document.addEventListener("DOMContentLoaded", () => {
     }
   }
 
+  function showMessage(text, type = "success") {
+    messageDiv.textContent = text;
+    messageDiv.className = type;
+    messageDiv.classList.remove("hidden");
+
+    setTimeout(() => {
+      messageDiv.classList.add("hidden");
+    }, 5000);
+  }
+
+  profileForm.addEventListener("submit", async (event) => {
+    event.preventDefault();
+
+    const email = document.getElementById("profile-email").value;
+    const name = document.getElementById("profile-name").value;
+    const grade_level = document.getElementById("profile-grade").value;
+    const contact_number = document.getElementById("profile-contact").value;
+    const enrolled_at = document.getElementById("profile-enrolled").value;
+
+    const profile = {
+      email,
+      name,
+      grade_level,
+      contact_number: contact_number || undefined,
+      enrolled_at: enrolled_at || undefined,
+    };
+
+    try {
+      const response = await fetch("/students", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify(profile),
+      });
+
+      const result = await response.json();
+
+      if (response.ok) {
+        showMessage("Student profile created successfully.");
+        profileForm.reset();
+        fetchStudents();
+      } else {
+        showMessage(result.detail || "Failed to create profile.", "error");
+      }
+    } catch (error) {
+      showMessage("Failed to create profile. Please try again.", "error");
+      console.error("Error creating student profile:", error);
+    }
+  });
+
   // Handle form submission
   signupForm.addEventListener("submit", async (event) => {
     event.preventDefault();
@@ -130,31 +223,21 @@ document.addEventListener("DOMContentLoaded", () => {
       const result = await response.json();
 
       if (response.ok) {
-        messageDiv.textContent = result.message;
-        messageDiv.className = "success";
+        showMessage(result.message);
         signupForm.reset();
 
         // Refresh activities list to show updated participants
         fetchActivities();
       } else {
-        messageDiv.textContent = result.detail || "An error occurred";
-        messageDiv.className = "error";
+        showMessage(result.detail || "An error occurred", "error");
       }
-
-      messageDiv.classList.remove("hidden");
-
-      // Hide message after 5 seconds
-      setTimeout(() => {
-        messageDiv.classList.add("hidden");
-      }, 5000);
     } catch (error) {
-      messageDiv.textContent = "Failed to sign up. Please try again.";
-      messageDiv.className = "error";
-      messageDiv.classList.remove("hidden");
+      showMessage("Failed to sign up. Please try again.", "error");
       console.error("Error signing up:", error);
     }
   });
 
   // Initialize app
+  fetchStudents();
   fetchActivities();
 });
